@@ -1,4 +1,4 @@
 .idea
 .ipynb_checkpoints
-*.ipnb
+*.ipynb
 jupyter_micropython_kernel
