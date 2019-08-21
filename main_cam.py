@@ -1,9 +1,10 @@
 from machine import Pin, SDCard
 from network import WLAN, STA_IF, AP_IF
 from utime import sleep_ms, ticks_ms, ticks_diff, ticks_add
-import _thread
+# import _thread
 from neopixel import NeoPixel
 
+# TODO: mount sdcard and try loading configuration from it instead of the hardcoded one. :)
 # from uos import mount, umount, listdir
 
 
@@ -43,25 +44,60 @@ def warning_led(led):
 
 
 # Buttons
-button_1 = Pin(14, Pin.IN, Pin.PULL_UP)
-button_2 = Pin(15, Pin.IN, Pin.PULL_UP)
-button_3 = Pin(13, Pin.IN, Pin.PULL_UP)
-button_4 = Pin(12, Pin.IN, Pin.PULL_UP)
+
+warning_led(led)
+button_actions = {
+    "Pin(14)": {
+        "1": "deep_blue_sea",
+        "0": "ring_of_fire",
+        "pin_id": 14,
+    },
+    "Pin(13)": {
+        "1": "circle_of_life",
+        "0": "clean_neopixel",
+        "pin_id": 13,
+    },
+    "Pin(12)": {
+        "1": "deep_blue_sea",
+        "0": "ring_of_fire",
+        "pin_id": 12,
+    },
+}
+
+last_ticks_for = {
+}
+
+_minimum_delay_between_push_buttons = 650
 
 
 def was_a_long_press(button):
-    button_state = False
-    button_long_press = False
-    deadline = ticks_add(ticks_ms(), 400)
+    button_state = 0
+    _delay_between_cycles = 20
+    _minimum_to_consider_a_push = 20
+    _consider_long_push_after = 400
+    if str(button) in last_ticks_for:
+        if ticks_ms() - last_ticks_for[str(button)] < _minimum_delay_between_push_buttons:
+            # print("Not that fast, niggah")
+            return -1
+    last_ticks_for[str(button)] = ticks_ms()
+
+    deadline = ticks_add(ticks_ms(), 600)
     while ticks_diff(deadline, ticks_ms()) > 0:
+        # print(button_state)
         if not button.value():
-            if not button_state:
-                button_state = True
-            else:
-                return True
+            button_state += _delay_between_cycles
+            if button_state >= _consider_long_push_after:
+                return 1
+            sleep_ms(_delay_between_cycles)
         else:
-            return False
-        sleep_ms(200)
+            break
+    if button_state >= _minimum_to_consider_a_push:
+        if button_state >= _consider_long_push_after:
+            return 1
+        else:
+            return 0
+    else:
+        return -1
 
 
 np = NeoPixel(Pin(2), 16)
@@ -161,11 +197,6 @@ def clean_neopixel(np):
     np.write()
 
 
-def button_circle_of_life(p):
-    if not p.value():
-        circle_of_life(np)
-
-
 def circle_of_life(np):
     clean_neopixel(np)
     initial_key = 0
@@ -201,11 +232,6 @@ def circle_of_life(np):
     clean_neopixel(np)
 
 
-# circle_of_life(np)
-# ring_of_fire(np)
-# deep_blue_sea(np)
-# ring_of_nothing(np)
-
 def circle_of_death(np):
     space_between_lights = int(np.n / 4)
     for i in range(0, space_between_lights):
@@ -215,28 +241,23 @@ def circle_of_death(np):
         sleep_ms(300)
 
 
-def button_3_push(p):
-    if was_a_long_press(p):
-        clean_neopixel(np)
+def super_button_handler(p):
+    _was_it_a_long_press = was_a_long_press(p)
+    if _was_it_a_long_press != -1:
+        if str(p) in button_actions:
+            command_to_execute = button_actions[str(p)][str(_was_it_a_long_press)]
+            desired_action = eval(command_to_execute)
+            print("executing: {}".format(command_to_execute))
+            desired_action(np)
     else:
-        circle_of_life(np)
+        # print("Super button handler: Ignoring button {}".format(str(p)))
+        pass
 
 
-def button_4_push(p):
-    if was_a_long_press(p):
-        _thread.start_new_thread(deep_blue_sea, [np])
-    else:
-        _thread.start_new_thread(ring_of_fire, [np])
-
-
-# button_1.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=button_circle_of_life)
-# button_2.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=button_ramdon_light_thing)
-button_3.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=button_3_push)
-button_4.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=button_4_push)
-
-# button_1 = Pin(14, Pin.IN, Pin.PULL_UP)
-# def test_button(p):
-#     if not p.value():
-#         print("Test button")
-#         sleep_ms(200)
-# button_1.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=test_button)
+# Create buttons and assign IRQ supper_button_handler to it.
+buttons = []
+for pin_in_action_buttons in button_actions:
+    _temp_button = Pin(button_actions[pin_in_action_buttons]['pin_id'], Pin.IN, Pin.PULL_UP)
+    # print(_temp_button)
+    _temp_button.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=super_button_handler)
+    buttons.append(_temp_button)
