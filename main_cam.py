@@ -1,13 +1,75 @@
 from machine import Pin, SDCard
-from network import WLAN, STA_IF, AP_IF
 from utime import sleep_ms, ticks_ms, ticks_diff, ticks_add
-# import _thread
 from neopixel import NeoPixel
+from uos import mount, umount, listdir, stat
 
-# TODO: mount sdcard and try loading configuration from it instead of the hardcoded one. :)
-# from uos import mount, umount, listdir
+# from network import WLAN, STA_IF, AP_IF
+
+led = Pin(4, Pin.OUT)
 
 
+def warning_led(led):
+    for running_time in range(10):
+        led.value(not led.value())
+        if not led.value():
+            sleep_ms(400)
+        else:
+            sleep_ms(1)
+    led.off()
+
+
+warning_led(led)
+
+
+# Buttons
+button_actions = {
+    "Pin(14)": {
+        "1": "deep_blue_sea",
+        "0": "ring_of_fire",
+        "pin_id": 14,
+    },
+    "Pin(13)": {
+        "1": "circle_of_life",
+        "0": "clean_neopixel",
+        "pin_id": 13,
+    },
+    "Pin(15)": {
+        "1": "bright_eyes",
+        "0": "green_reaper",
+        "pin_id": 15,
+    },
+}
+
+_umount_sd = True
+try:
+    mount(SDCard(), "/sd")
+    if "main.py" in listdir("/sd"):
+        print("main.py file found in SD card...")
+        if stat("/sd/main.py")[8] > stat("main.py")[8]:
+            print("Found new main.py, copying it")
+        else:
+            print("Not newer version, ignoring...")
+    else:
+        print("No main.py found in SD card... Skipping main script update process")
+    if "pin_config.py" in listdir("/sd"):
+        print("PIN Configuration file found in SD. Copying...")
+        with open("/sd/pin_config.py", "r") as new_configuration_file_fh:
+            _destination_configuration_file_fh = open("/pin_config.py")
+            _destination_configuration_file_fh.write(new_configuration_file_fh.read())
+            _destination_configuration_file_fh.close()
+            new_configuration_file_fh.close()
+except OSError:
+    print("Failed to mount SDCard")
+    _umount_sd = False
+    warning_led(led)
+finally:
+    if _umount_sd:
+        umount("/sd")
+
+try:
+    from pin_config import button_actions
+except ImportError:
+    print("Unable to load button_actions from local pin_config.py. Using coded ones...")
 
 # class NeoPixel:
 #     n = 16
@@ -30,40 +92,6 @@ from neopixel import NeoPixel
 #         print("{}: {}".format(key, self.led_list[key]))
 
 brightness_mod = 10
-
-led = Pin(4, Pin.OUT)
-
-
-def warning_led(led):
-    for running_time in range(10):
-        led.value(not led.value())
-        if not led.value():
-            sleep_ms(400)
-        else:
-            sleep_ms(1)
-    led.off()
-
-
-# Buttons
-
-warning_led(led)
-button_actions = {
-    "Pin(14)": {
-        "1": "deep_blue_sea",
-        "0": "ring_of_fire",
-        "pin_id": 14,
-    },
-    "Pin(13)": {
-        "1": "circle_of_life",
-        "0": "clean_neopixel",
-        "pin_id": 13,
-    },
-    "Pin(15)": {
-        "1": "bright_eyes",
-        "0": "green_reaper",
-        "pin_id": 15,
-    },
-}
 
 last_ticks_for = {
 }
@@ -279,3 +307,5 @@ for pin_in_action_buttons in button_actions:
     # print(_temp_button)
     _temp_button.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=super_button_handler)
     buttons.append(_temp_button)
+
+clean_neopixel(np)
