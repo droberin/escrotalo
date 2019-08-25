@@ -8,6 +8,7 @@ from neopixel import NeoPixel
 # from uos import mount, umount, listdir
 
 
+
 # class NeoPixel:
 #     n = 16
 #     led_list = []
@@ -57,10 +58,10 @@ button_actions = {
         "0": "clean_neopixel",
         "pin_id": 13,
     },
-    "Pin(12)": {
-        "1": "deep_blue_sea",
-        "0": "ring_of_fire",
-        "pin_id": 12,
+    "Pin(15)": {
+        "1": "bright_eyes",
+        "0": "green_reaper",
+        "pin_id": 15,
     },
 }
 
@@ -175,8 +176,8 @@ def ring_of_nothing(np):
 
 def bright_up():
     global brightness_mod
-    if (brightness_mod + 10) <= 250:
-        brightness_mod += 10
+    if (brightness_mod + 40) <= 250:
+        brightness_mod += 40
     else:
         brightness_mod = 255
     brightness(np)
@@ -184,8 +185,8 @@ def bright_up():
 
 def bright_down():
     global brightness_mod
-    if (brightness_mod - 10) >= 10:
-        brightness_mod -= 10
+    if (brightness_mod - 40) >= 10:
+        brightness_mod -= 40
     else:
         brightness_mod = 10
     brightness(np)
@@ -241,6 +242,20 @@ def circle_of_death(np):
         sleep_ms(300)
 
 
+def bright_eyes(np):
+    for pin in range(np.n):
+        np[pin] = (120, 120, 120)
+        np.write()
+        sleep_ms(50)
+
+
+def green_reaper(np):
+    for pin in reversed(range(np.n)):
+        np[pin] = (0, 255, 0)
+        np.write()
+        sleep_ms(50)
+
+
 def super_button_handler(p):
     _was_it_a_long_press = was_a_long_press(p)
     if _was_it_a_long_press != -1:
@@ -248,7 +263,10 @@ def super_button_handler(p):
             command_to_execute = button_actions[str(p)][str(_was_it_a_long_press)]
             desired_action = eval(command_to_execute)
             print("executing: {}".format(command_to_execute))
-            desired_action(np)
+            if "no_arguments" in button_actions[str(p)] and button_actions[str(p)]['no_arguments']:
+                desired_action()
+            else:
+                desired_action(np)
     else:
         # print("Super button handler: Ignoring button {}".format(str(p)))
         pass
