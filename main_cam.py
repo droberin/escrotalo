@@ -22,6 +22,11 @@ warning_led(led)
 
 # Buttons
 button_actions = {
+    "Pin(12)": {
+        "1": "gps_scrotallum",
+        "0": "ring_of_nothing",
+        "pin_id": 12,
+    },
     "Pin(14)": {
         "1": "deep_blue_sea",
         "0": "ring_of_fire",
@@ -46,6 +51,13 @@ try:
         print("main.py file found in SD card...")
         if stat("/sd/main.py")[8] > stat("main.py")[8]:
             print("Found new main.py, copying it")
+            with open("/sd/main.py", "r") as new_main_file_fh:
+                _destination_main_file_fh = open("/pin_config.py", "w")
+                _destination_main_file_fh.write(new_main_file_fh.read())
+                _destination_main_file_fh.close()
+                new_main_file_fh.close()
+                del _destination_main_file_fh
+                del new_main_file_fh
         else:
             print("Not newer version, ignoring...")
     else:
@@ -53,12 +65,14 @@ try:
     if "pin_config.py" in listdir("/sd"):
         print("PIN Configuration file found in SD. Copying...")
         with open("/sd/pin_config.py", "r") as new_configuration_file_fh:
-            _destination_configuration_file_fh = open("/pin_config.py")
+            _destination_configuration_file_fh = open("/pin_config.py", "w")
             _destination_configuration_file_fh.write(new_configuration_file_fh.read())
             _destination_configuration_file_fh.close()
             new_configuration_file_fh.close()
+            del _destination_configuration_file_fh
+            del new_configuration_file_fh
 except OSError:
-    print("Failed to mount SDCard")
+    print("Failed to mount SDCard... Skipping update tool.")
     _umount_sd = False
     warning_led(led)
 finally:
