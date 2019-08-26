@@ -20,7 +20,6 @@ def warning_led(led):
 
 warning_led(led)
 
-
 # Buttons
 button_actions = {
     "Pin(14)": {
@@ -309,3 +308,35 @@ for pin_in_action_buttons in button_actions:
     buttons.append(_temp_button)
 
 clean_neopixel(np)
+
+
+def gps_scrotallum(np):
+    miao = None
+    for _love_me_thrice_today in range(3):
+        for a in range(14):
+            miao = a
+            b = (a, a + 1, a + 2)
+            for led in range(np.n):
+                if led not in b:
+                    np[led] = (10, 10, 10)
+            np.write()
+            for aa in b:
+                np[aa] = (10, 0, 0)
+            np.write()
+            sleep_ms(30)
+    b = (miao, miao + 1, miao + 2)
+    for led in range(np.n):
+        np[led] = (0, 0, 0)
+    np.write()
+    for a in range(12):
+        for pin in b:
+            np[pin] = (0, 0, 0)
+        np.write()
+        sleep_ms(30)
+        for pin in b:
+            np[pin] = (10, 0, 0)
+        np.write()
+        sleep_ms(30)
+        for pin in b:
+            np[pin] = (0, 0, 0)
+        np.write()
